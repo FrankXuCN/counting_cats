@@ -1,13 +1,13 @@
 #coding=utf-8
 import sys
 import os
-from PIL import Image
-import numpy as np
+import tensorflow
 import tensorflow as tf
 from tensorflow.keras import datasets, layers, models
+from PIL import Image
+import numpy as np
 import matplotlib.pyplot as plt
-from tensorflow.saved_model import tag_constants
-
+tf.compat.v1.disable_eager_execution()
 
 def unpickle(file):
     import pickle
@@ -47,26 +47,41 @@ def cnn(data_dir, model_path, load_flag):
     # how many classes there are
     num_classes = len(set(labels))
 
+    tensor = tf.random.truncated_normal(shape=[3, 3, 3, 64], mean=0, stddev=0.08)
+    conv1_filter = tf.Variable(tensor)
+    conv2_filter = tf.Variable(tf.random.truncated_normal(shape=[3, 3, 64, 128], mean=0, stddev=0.08))
+    conv3_filter = tf.Variable(tf.random.truncated_normal(shape=[5, 5, 128, 256], mean=0, stddev=0.08))
+    conv4_filter = tf.Variable(tf.random.truncated_normal(shape=[5, 5, 256, 512], mean=0, stddev=0.08))
 
     # Placeholder for input and labels
-    datas_placeholder = tf.placeholder(tf.float32, [None, 32, 32, 3])
-    labels_placeholder = tf.placeholder(tf.int32, [None])
+    datas_placeholder = tf.compat.v1.placeholder(tf.float32, [None, 32, 32, 3])
+    labels_placeholder = tf.compat.v1.placeholder(tf.int32, [None])
 
     # DropOut, which is 0.25 for training, and is 0 for testing
-    dropout_placeholdr = tf.placeholder(tf.float32)
+    dropout_placeholdr = tf.compat.v1.placeholder(tf.float32)
 
     # convolutional layer, 20 kenerl size, stride is 5，relu
-    conv0 = tf.layers.conv2d(datas_placeholder, 20, 5, activation=tf.nn.relu)
+    conv0 = tf.layers.conv2d(datas_placeholder, conv1_filter, 9, 9, activation=tf.nn.relu)
     # max-pooling layer，pooling window is 2x2，step is2x2
     pool0 = tf.layers.max_pooling2d(conv0, [2, 2], [2, 2])
 
     # convolution, 40 kernel size, stride is 4, activety fun is Relu
-    conv1 = tf.layers.conv2d(pool0, 40, 4, activation=tf.nn.relu)
+    conv1 = tf.layers.conv2d(pool0, conv2_filter, 9, 9, activation=tf.nn.relu)
     # max-pooling layer，pooling window is 2x2，step is2x2
     pool1 = tf.layers.max_pooling2d(conv1, [2, 2], [2, 2])
 
+    # convolution, 40 kernel size, stride is 4, activety fun is Relu
+    conv2 = tf.layers.conv2d(pool1, conv3_filter, 25, 25, activation=tf.nn.relu)
+    # max-pooling layer，pooling window is 2x2，step is2x2
+    pool2 = tf.layers.max_pooling2d(conv2, [2, 2], [2, 2])
+
+    # convolution, 40 kernel size, stride is 4, activety fun is Relu
+    conv3 = tf.layers.conv2d(pool2, conv4_filter, 25, 25, activation=tf.nn.relu)
+    # max-pooling layer，pooling window is 2x2，step is2x2
+    pool3 = tf.layers.max_pooling2d(conv3, [2, 2], [2, 2])
+
     # 3D to 1D
-    flatten = tf.layers.flatten(pool1)
+    flatten = tf.layers.flatten(pool3)
 
     # full connection
     fc = tf.layers.dense(flatten, 400, activation=tf.nn.relu)
